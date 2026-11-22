@@ -1,0 +1,122 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model bookmarks {
+  user_id Int
+  note_id Int
+  notes   notes @relation(fields: [note_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  users   users @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@id([user_id, note_id])
+}
+
+model classrooms {
+  id          Int              @id @default(autoincrement())
+  owner_id    Int
+  name        String           @db.VarChar(100)
+  description String?
+  visibility  visibility_type? @default(public)
+  invite_code String           @unique @db.VarChar(10)
+  members     Int?             @default(0)
+  created_at  DateTime?        @default(now()) @db.Timestamp(6)
+  users       users            @relation(fields: [owner_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  subjects    subjects[]
+}
+
+model classrooms_members {
+  user_id      Int
+  classroom_id Int
+  joined_at    DateTime?  @default(now()) @db.Timestamp(6)
+  role         role_type? @default(member)
+  users        users      @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@id([user_id, classroom_id])
+}
+
+model comments {
+  id         Int       @id @default(autoincrement())
+  note_id    Int
+  user_id    Int
+  comment    String?
+  created_at DateTime? @default(now()) @db.Timestamp(6)
+  notes      notes     @relation(fields: [note_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  users      users     @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+}
+
+model likes {
+  user_id Int
+  note_id Int
+  notes   notes @relation(fields: [note_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  users   users @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@id([user_id, note_id])
+}
+
+model notes {
+  id         Int              @id @default(autoincrement())
+  subject_id Int
+  user_id    Int
+  name       String           @db.VarChar(100)
+  content    String?
+  visibility visibility_type? @default(public)
+  likes_count      Int?       @default(0) @map("likes")
+  bookmarks_count  Int?             @default(0)  @map("bookmarks")
+  created_at DateTime?        @default(now()) @db.Timestamp(6)
+  bookmarks  bookmarks[]
+  comments   comments[]
+  likes      likes[]
+  subjects   subjects         @relation(fields: [subject_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  users      users            @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+}
+
+model subjects {
+  id           Int        @id @default(autoincrement())
+  classroom_id Int
+  name         String     @db.VarChar(100)
+  description  String?
+  created_at   DateTime?  @default(now()) @db.Timestamp(6)
+  notes        notes[]
+  classrooms   classrooms @relation(fields: [classroom_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+}
+
+model users {
+  id                 Int                  @id @default(autoincrement())
+  first_name         String               @db.VarChar(100)
+  middle_name        String               @db.VarChar(100)
+  last_name          String               @db.VarChar(100)
+  age                Int
+  birthday           DateTime?            @db.Date
+  email              String?              @unique @db.VarChar(150)
+  password_hash      String               @db.VarChar(255)
+  role               user_role            @default(user)
+  created_at         DateTime?            @default(now()) @db.Timestamp(6)
+  username           String               @default("") @db.VarChar(50)
+  bookmarks          bookmarks[]
+  classrooms         classrooms[]
+  classrooms_members classrooms_members[]
+  comments           comments[]
+  likes              likes[]
+  notes              notes[]
+}
+
+enum role_type {
+  member
+  owner
+}
+
+enum user_role {
+  admin
+  user
+  moderator
+}
+
+enum visibility_type {
+  public
+  private
+}
